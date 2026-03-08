@@ -1,0 +1,3489 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>SONIK — Müzik Çalar</title>
+
+<!-- PWA Meta Tags -->
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SONIK">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="SONIK — Offline müzik çalar. PWA olarak ana ekrana ekle.">
+
+<!-- PWA Icons (inline SVG as data URI) -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230a0a0f'/%3E%3Ctext x='256' y='340' text-anchor='middle' font-size='260' font-family='Arial Black' fill='%23e8ff47'%3E♪%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230a0a0f'/%3E%3Ctext x='256' y='340' text-anchor='middle' font-size='260' font-family='Arial Black' fill='%23e8ff47'%3E♪%3C/text%3E%3C/svg%3E">
+
+<!-- Inline PWA Manifest -->
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22SONIK+M%C3%BCzik+%C3%87alar%22%2C%22short_name%22%3A%22SONIK%22%2C%22description%22%3A%22Offline+m%C3%BCzik+%C3%A7alar%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230a0a0f%22%2C%22theme_color%22%3A%22%230a0a0f%22%2C%22orientation%22%3A%22portrait%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%2520viewBox%3D'0%25200%2520512%2520512'%253E%253Crect%2520width%3D'512'%2520height%3D'512'%2520rx%3D'100'%2520fill%3D'%25230a0a0f'%2F%253E%253Ctext%2520x%3D'256'%2520y%3D'340'%2520text-anchor%3D'middle'%2520font-size%3D'260'%2520font-family%3D'Arial%2520Black'%2520fill%3D'%2523e8ff47'%253E%E2%99%AA%253C%2Ftext%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%2C%22purpose%22%3A%22any+maskable%22%7D%5D%7D">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --text: #f0f0f8;
+    --muted: #5a5a72;
+    --border: #22222e;
+    --glow: rgba(232, 255, 71, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    position: relative;
+    /* Safe area for notch/home bar on iOS */
+    padding-bottom: env(safe-area-inset-bottom);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  /* PWA standalone mode — daha kompakt header */
+  @media all and (display-mode: standalone) {
+    .app { padding-top: 20px; }
+  }
+
+  /* Touch targets minimum 44px */
+  .ctrl-btn, .play-btn, .mini-btn, .mini-play-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Progress track - daha kolay dokunulur */
+  .progress-track {
+    padding: 10px 0;
+    margin: -10px 0;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(232,255,71,0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(255,107,53,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 48px;
+  }
+
+  .logo {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--accent);
+    text-shadow: 0 0 40px rgba(232,255,71,0.4);
+  }
+
+  .logo span { color: var(--text); }
+
+  .format-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+  }
+
+  /* DROP ZONE */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 20px;
+    padding: 48px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+
+  .drop-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, var(--glow) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--surface2);
+  }
+
+  .drop-zone:hover::before, .drop-zone.drag-over::before {
+    opacity: 1;
+  }
+
+  .drop-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    display: block;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .drop-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .drop-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  .drop-formats {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+
+  .fmt-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  #fileInput { display: none; }
+
+  /* NOW PLAYING */
+  .player-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 28px 24px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+    display: none;
+  }
+
+  .player-card.active { display: block; animation: slideIn 0.4s ease; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Spotify-style blurred background ── */
+  .bg-blur {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-size: cover;
+    background-position: center;
+    filter: blur(80px) brightness(0.3) saturate(1.4);
+    opacity: 0;
+    transition: background-image 1s ease, opacity 1s ease;
+    pointer-events: none;
+    transform: scale(1.15); /* blur kenarlarındaki boşluğu kapat */
+  }
+
+  .bg-blur.active {
+    opacity: 0.85;
+  }
+
+  .player-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .now-playing-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pulse-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  .track-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .album-art {
+    width: clamp(200px, 75vw, 340px);
+    height: clamp(200px, 75vw, 340px);
+    border-radius: 18px;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 72px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.08);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04);
+    transition: box-shadow 0.5s, transform 0.3s;
+  }
+
+  .album-art.spinning {
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 40px rgba(232,255,71,0.12);
+  }
+
+  .player-card.active .album-art:not(.spinning) {
+    transform: scale(0.97);
+  }
+
+  .album-art img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 18px;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .track-meta {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .track-title {
+    font-size: 22px;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+
+  .track-artist {
+    font-size: 15px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .track-format {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent2);
+    background: rgba(255,107,53,0.1);
+    border: 1px solid rgba(255,107,53,0.3);
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* VISUALIZER */
+  .visualizer-wrap {
+    position: relative;
+    margin-bottom: 24px;
+  }
+
+  .visualizer {
+    height: 60px;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    margin-bottom: 24px;
+    padding: 0 4px;
+  }
+
+  .viz-bar {
+    flex: 1;
+    background: linear-gradient(180deg, var(--accent), rgba(232,255,71,0.2));
+    border-radius: 2px 2px 0 0;
+    height: 4px;
+    transition: height 0.1s ease;
+    min-height: 4px;
+    max-height: 60px;
+  }
+
+  #visualizer {
+    width: 100%;
+    height: 80px;
+    display: block;
+    border-radius: 10px;
+    margin-bottom: 8px;
+  }
+
+  .viz-mode-btns {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+  }
+
+  .viz-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .viz-btn:hover { border-color: var(--muted); color: var(--text); }
+  .viz-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(232,255,71,0.06); }
+
+  /* PROGRESS */
+  .progress-section { margin-bottom: 20px; }
+
+  .time-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .progress-track {
+    width: 100%;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    overflow: visible;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.1s linear;
+    position: relative;
+  }
+
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: -6px; top: 50%;
+    transform: translateY(-50%);
+    width: 12px; height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(232,255,71,0.6);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .progress-track:hover .progress-fill::after { opacity: 1; }
+
+  /* CONTROLS */
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .ctrl-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 18px;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .ctrl-btn:hover { color: var(--text); background: var(--surface2); }
+
+  .ctrl-btn.active { color: var(--accent); }
+
+  .play-btn {
+    width: 64px; height: 64px;
+    background: var(--accent);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: var(--bg);
+    transition: all 0.2s;
+    box-shadow: 0 0 30px rgba(232,255,71,0.3);
+  }
+
+  .play-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 40px rgba(232,255,71,0.5);
+  }
+
+  .play-btn:active { transform: scale(0.97); }
+
+  /* VOLUME */
+  .volume-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .vol-icon { font-size: 16px; color: var(--muted); cursor: pointer; }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 3px;
+    background: var(--surface2);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    background: var(--text);
+    border-radius: 50%;
+    transition: all 0.2s;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover {
+    background: var(--accent);
+    transform: scale(1.3);
+  }
+
+  .vol-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    width: 32px;
+    text-align: right;
+  }
+
+
+  /* LYRICS PANEL */
+  .lyrics-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    margin-bottom: 24px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .lyrics-panel.active { display: block; animation: slideIn 0.4s ease; }
+
+  .lyrics-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .lyrics-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .lyrics-title span { color: var(--accent); }
+
+  .lyrics-actions { display: flex; gap: 8px; align-items: center; }
+
+  .lyrics-edit-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .lyrics-edit-btn:hover, .lyrics-edit-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .lyrics-body { position: relative; min-height: 120px; }
+
+  .lyrics-display {
+    padding: 24px;
+    font-size: 15px;
+    line-height: 1.9;
+    color: var(--text);
+    white-space: pre-wrap;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  .lyrics-display::-webkit-scrollbar { width: 4px; }
+  .lyrics-display::-webkit-scrollbar-track { background: transparent; }
+  .lyrics-display::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .lyrics-empty {
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .lyrics-empty-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.4; }
+
+  .lyrics-textarea {
+    width: 100%;
+    min-height: 200px;
+    background: var(--surface2);
+    border: none;
+    border-top: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    padding: 20px 24px;
+    resize: vertical;
+    outline: none;
+    display: none;
+  }
+
+  .lyrics-textarea.show { display: block; }
+
+  .lyrics-textarea::placeholder { color: var(--muted); }
+
+  .lyrics-save-row {
+    padding: 12px 24px;
+    border-top: 1px solid var(--border);
+    display: none;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .lyrics-save-row.show { display: flex; }
+
+  .lyrics-save-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .lyrics-save-btn:hover { box-shadow: 0 4px 16px rgba(232,255,71,0.3); }
+
+  .lyrics-cancel-btn {
+    background: none;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .lyrics-cancel-btn:hover { color: var(--text); border-color: var(--muted); }
+
+  /* CONVERSION PANEL */
+  .convert-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 24px;
+    display: none;
+  }
+
+  .convert-panel.active { display: block; animation: slideIn 0.4s ease; }
+
+  .panel-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+  }
+
+  .panel-title span { color: var(--accent); }
+
+  /* current track info */
+  .convert-track-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--surface2);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+  }
+
+  .convert-track-icon { font-size: 22px; flex-shrink: 0; }
+
+  .convert-filename {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .convert-size {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* options grid */
+  .convert-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 500px) { .convert-options { grid-template-columns: 1fr; } }
+
+  .convert-option-group { display: flex; flex-direction: column; gap: 6px; }
+
+  .convert-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .format-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+
+  .format-select:focus { border-color: var(--accent); }
+
+  /* action buttons */
+  .convert-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .convert-btn {
+    flex: 1;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 11px 16px;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .convert-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(232,255,71,0.3); }
+  .convert-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .convert-btn-all {
+    flex: 1;
+    background: none;
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 11px 16px;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .convert-btn-all:hover { border-color: var(--accent); color: var(--accent); }
+  .convert-btn-all:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* progress */
+  .convert-progress-wrap {
+    margin-top: 16px;
+    display: none;
+  }
+
+  .convert-progress-wrap.show { display: block; }
+
+  .convert-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .convert-progress-track {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .convert-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 6px;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  .convert-log {
+    margin-top: 12px;
+    max-height: 100px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .convert-log::-webkit-scrollbar { width: 3px; }
+  .convert-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .convert-log-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: slideIn 0.2s ease;
+  }
+
+  .convert-log-item.ok { color: var(--accent); }
+  .convert-log-item.err { color: #ff4d6d; }
+  .convert-log-item.pending { color: var(--muted); }
+
+  /* PLAYLIST */
+  .playlist {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  .playlist-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .playlist-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+  }
+
+  .track-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 4px 10px;
+    border-radius: 12px;
+  }
+
+  .playlist-empty {
+    padding: 48px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    display: none;
+  }
+
+  .playlist-empty.show { display: block; }
+
+  .track-list { max-height: 320px; overflow-y: auto; }
+
+  .track-list::-webkit-scrollbar { width: 4px; }
+  .track-list::-webkit-scrollbar-track { background: transparent; }
+  .track-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .track-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 24px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    position: relative;
+  }
+
+  .track-item:hover { background: var(--surface2); }
+
+  .track-item.playing {
+    background: rgba(232,255,71,0.05);
+    border-left: 2px solid var(--accent);
+  }
+
+  .track-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .track-item.playing .track-num { display: none; }
+
+  /* Playlist küçük kapak resmi */
+  .track-thumb {
+    width: 44px; height: 44px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+    padding-bottom: 4px;
+  }
+
+  .track-thumb.has-cover { border-color: transparent; padding: 0; }
+
+  .track-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .mini-viz-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    width: 100%;
+    height: 100%;
+    padding: 4px 6px;
+  }
+
+  /* mini-viz — artık sadece playing state animasyonu için */
+  .mini-viz {
+    display: none;
+    width: 44px; height: 44px;
+    gap: 2px;
+    align-items: flex-end;
+    flex-shrink: 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .mini-bar {
+    flex: 1;
+    background: var(--accent);
+    border-radius: 1px;
+    animation: miniPulse 0.8s ease-in-out infinite;
+  }
+
+  .mini-bar:nth-child(2) { animation-delay: 0.15s; }
+  .mini-bar:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes miniPulse {
+    0%, 100% { height: 3px; }
+    50% { height: 14px; }
+  }
+
+  .track-item-info { flex: 1; min-width: 0; }
+
+  .track-item-name {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 3px;
+  }
+
+  .track-item.playing .track-item-name { color: var(--accent); }
+
+  .track-item-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    gap: 8px;
+  }
+
+  .track-item-dur {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .remove-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: all 0.2s;
+  }
+
+  .track-item:hover .remove-btn { opacity: 1; }
+  .remove-btn:hover { color: #ff4d6d; background: rgba(255,77,109,0.1); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-size: 13px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 100;
+    max-width: 300px;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: rgba(232,255,71,0.4); color: var(--accent); }
+  .toast.error { border-color: rgba(255,77,109,0.4); color: #ff4d6d; }
+
+  /* RESPONSIVE */
+  /* ── MINI PLAYER ────────────────────────────────────── */
+  .mini-player {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(10,10,15,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: 0 20px;
+    height: 64px;
+    display: none;
+    align-items: center;
+    gap: 14px;
+    z-index: 200;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+  }
+
+  .mini-player.show { display: flex; }
+
+  .mini-art {
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+
+  .mini-info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .mini-title {
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+
+  .mini-artist {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mini-progress {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--border);
+    cursor: pointer;
+  }
+
+  .mini-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    width: 0%;
+    transition: width 0.1s linear;
+    pointer-events: none;
+  }
+
+  .mini-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .mini-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .mini-btn:hover { color: var(--text); background: var(--surface2); }
+
+  .mini-play-btn {
+    width: 38px; height: 38px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 50%;
+    font-size: 15px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    box-shadow: 0 0 16px rgba(232,255,71,0.25);
+  }
+
+  .mini-play-btn:hover { transform: scale(1.08); }
+
+  .mini-close-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 6px;
+    flex-shrink: 0;
+    transition: color 0.2s;
+  }
+
+  .mini-close-btn:hover { color: var(--text); }
+
+  /* ── RESPONSIVE ─────────────────────────────────────── */
+  /* Body padding when mini player is visible */
+  body.mini-active { padding-bottom: 64px; }
+
+  @media (max-width: 600px) {
+    .app { padding: 24px 16px; }
+    .header { margin-bottom: 24px; }
+    .logo { font-size: 22px; }
+    .format-badge { display: none; }
+
+    .drop-zone { padding: 32px 20px; }
+    .drop-icon { font-size: 36px; }
+    .drop-title { font-size: 16px; }
+
+    .player-card { padding: 20px 16px; }
+    .track-info { gap: 12px; }
+    .album-art { font-size: 48px; } /* clamp() ile zaten responsive */
+    .track-title { font-size: 17px; }
+
+    .controls { gap: 8px; }
+    .ctrl-btn { width: 38px; height: 38px; font-size: 16px; }
+    .play-btn { width: 52px; height: 52px; font-size: 18px; }
+
+    #visualizer { height: 56px; }
+
+    .convert-options { grid-template-columns: 1fr; }
+    .convert-actions { flex-direction: column; }
+
+    .playlist-header { padding: 14px 16px; }
+    .track-item { padding: 12px 16px; gap: 10px; }
+
+    .lyrics-display { font-size: 14px; }
+
+    .mini-player { padding: 0 12px; gap: 10px; }
+    .mini-info { display: none; }
+  }
+
+  @media (max-width: 400px) {
+    .mini-btn { display: none; }
+    .mini-controls { gap: 4px; }
+  }
+
+  /* ── EQUALIZER PANEL ─────────────────────────────── */
+  .eq-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 24px;
+    display: none;
+  }
+  .eq-panel.active { display: block; animation: slideIn 0.4s ease; }
+
+  .eq-bands {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin: 20px 0 12px;
+  }
+
+  .eq-band {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .eq-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    min-width: 36px;
+    text-align: center;
+  }
+
+  .eq-slider {
+    -webkit-appearance: slider-vertical;
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 28px;
+    height: 100px;
+    cursor: pointer;
+    accent-color: var(--accent);
+    background: transparent;
+    outline: none;
+  }
+
+  .eq-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+
+  .eq-presets {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .eq-preset-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .eq-preset-btn:hover, .eq-preset-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── KARAOKE / LYRICS UPGRADE ────────────────────── */
+  .lyrics-line {
+    display: block;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    cursor: default;
+    color: var(--muted);
+    line-height: 1.9;
+  }
+  .lyrics-line.active {
+    color: var(--accent);
+    background: rgba(232,255,71,0.07);
+    font-weight: 700;
+    transform: scale(1.02);
+    text-shadow: 0 0 12px rgba(232,255,71,0.4);
+  }
+  .lyrics-line .ts {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    opacity: 0.5;
+    margin-right: 8px;
+  }
+  .karaoke-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .karaoke-btn:hover, .karaoke-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── FULLSCREEN VISUALIZER ───────────────────────── */
+  .viz-fullscreen-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .viz-fullscreen-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  #vizFullscreenOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 9999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  #vizFullscreenOverlay.show { display: flex; }
+
+  #vizFsCanvas {
+    width: 100vw;
+    height: 100vh;
+    display: block;
+  }
+
+  .viz-fs-info {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+  .viz-fs-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(232,255,71,0.8);
+    margin-bottom: 4px;
+  }
+  .viz-fs-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+  }
+  .viz-fs-mode-btns {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    display: flex;
+    gap: 8px;
+  }
+  .viz-fs-close {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    background: none;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.5);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .viz-fs-close:hover { color: #fff; border-color: rgba(255,255,255,0.6); }
+</style>
+</head>
+<body>
+
+<div id="bgBlur" class="bg-blur"></div>
+<div class="app">
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">SON<span>IK</span></div>
+    <div class="format-badge">MP3 · FLAC · M4A · WAV · OGG · AAC</div>
+  </div>
+
+  <!-- DROP ZONE -->
+  <div class="drop-zone" id="dropZone">
+    <span class="drop-icon">🎵</span>
+    <div class="drop-title">Müzik dosyalarını buraya bırak</div>
+    <div class="drop-sub">veya tıkla ve seç</div>
+    <div class="drop-formats">
+      <span class="fmt-tag">mp3</span>
+      <span class="fmt-tag">flac</span>
+      <span class="fmt-tag">m4a</span>
+      <span class="fmt-tag">wav</span>
+      <span class="fmt-tag">ogg</span>
+      <span class="fmt-tag">aac</span>
+      <span class="fmt-tag">opus</span>
+      <span class="fmt-tag">webm</span>
+    </div>
+    <input type="file" id="fileInput" accept="audio/*" multiple>
+  </div>
+
+  <!-- NOW PLAYING -->
+  <div class="player-card" id="playerCard">
+    <div class="now-playing-label">
+      <div class="pulse-dot" id="pulseDot"></div>
+      ŞU AN ÇALIYOR
+    </div>
+
+    <div class="track-info">
+      <div class="album-art" id="albumArt">🎵</div>
+      <div class="track-meta">
+        <div class="track-title" id="trackTitle">—</div>
+        <div class="track-artist" id="trackArtist">Bilinmeyen Sanatçı</div>
+        <div class="track-format" id="trackFormat">—</div>
+      </div>
+    </div>
+
+    <!-- VISUALIZER -->
+    <div class="visualizer-wrap">
+      <canvas id="visualizer" height="80"></canvas>
+      <div class="viz-mode-btns">
+        <button class="viz-btn active" data-mode="bars">▐▐</button>
+        <button class="viz-btn" data-mode="wave">〜</button>
+        <button class="viz-btn" data-mode="circle">◎</button>
+        <button class="viz-fullscreen-btn" id="vizFullscreenBtn">⛶</button>
+      </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div class="progress-section">
+      <div class="time-row">
+        <span id="currentTime">0:00</span>
+        <span id="totalTime">0:00</span>
+      </div>
+      <div class="progress-track" id="progressTrack">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+      <button class="ctrl-btn" id="shuffleBtn" title="Karıştır">⇄</button>
+      <button class="ctrl-btn" id="prevBtn" title="Önceki">⏮</button>
+      <button class="play-btn" id="playBtn">▶</button>
+      <button class="ctrl-btn" id="nextBtn" title="Sonraki">⏭</button>
+      <button class="ctrl-btn" id="repeatBtn" title="Tekrarla">↻</button>
+    </div>
+
+    <!-- VOLUME -->
+    <div class="volume-row">
+      <span class="vol-icon" id="muteBtn">🔊</span>
+      <input type="range" id="volumeSlider" min="0" max="100" value="80">
+      <span class="vol-pct" id="volPct">80%</span>
+    </div>
+  </div>
+
+  <!-- EQUALIZER PANEL -->
+  <div class="eq-panel" id="eqPanel">
+    <div class="panel-title">🎚️ <span>Ekolayzır</span></div>
+    <div class="eq-bands" id="eqBands">
+      <!-- JS ile oluşturulacak -->
+    </div>
+    <div class="eq-presets">
+      <button class="eq-preset-btn active" data-preset="flat">Düz</button>
+      <button class="eq-preset-btn" data-preset="rock">Rock</button>
+      <button class="eq-preset-btn" data-preset="bass">Bass Boost</button>
+      <button class="eq-preset-btn" data-preset="vocal">Vokal</button>
+      <button class="eq-preset-btn" data-preset="classical">Klasik</button>
+      <button class="eq-preset-btn" data-preset="metal">Metal</button>
+    </div>
+  </div>
+
+  <!-- LYRICS PANEL -->
+  <div class="lyrics-panel" id="lyricsPanel">
+    <div class="lyrics-header">
+      <div class="lyrics-title">🎤 <span>Şarkı</span> Sözleri</div>
+      <div class="lyrics-actions">
+        <button class="karaoke-btn" id="karaokeBtn">🎤 Karaoke</button>
+        <button class="lyrics-edit-btn" id="lyricsEditBtn">✏️ Düzenle</button>
+      </div>
+    </div>
+    <div class="lyrics-body">
+      <div id="lyricsDisplay" class="lyrics-display">
+        <div class="lyrics-empty" id="lyricsEmpty">
+          <div class="lyrics-empty-icon">🎤</div>
+          <div>Şarkı sözü eklenmemiş</div>
+          <div style="font-size:11px;margin-top:4px;font-family:'JetBrains Mono',monospace">Düzenle butonuna tıklayarak ekleyebilirsin</div>
+        </div>
+      </div>
+      <textarea class="lyrics-textarea" id="lyricsTextarea" placeholder="Şarkı sözlerini buraya yapıştır..."></textarea>
+    </div>
+    <div class="lyrics-save-row" id="lyricsSaveRow">
+      <button class="lyrics-cancel-btn" id="lyricsCancelBtn">İptal</button>
+      <button class="lyrics-save-btn" id="lyricsSaveBtn">💾 Kaydet</button>
+    </div>
+  </div>
+
+  <!-- CONVERSION PANEL -->
+  <div class="convert-panel" id="convertPanel">
+    <div class="panel-title">🔄 <span>Format</span> Dönüştür</div>
+
+    <div class="convert-track-info">
+      <div class="convert-track-icon" id="convertIcon">🎵</div>
+      <div style="flex:1;min-width:0">
+        <div class="convert-filename" id="convertFilename">—</div>
+        <div class="convert-size" id="convertSize">—</div>
+      </div>
+    </div>
+
+    <div class="convert-options">
+      <div class="convert-option-group">
+        <div class="convert-label">Hedef Format</div>
+        <select class="format-select" id="targetFormat">
+          <option value="audio/wav">WAV — Kayıpsız</option>
+          <option value="audio/ogg;codecs=vorbis">OGG Vorbis</option>
+          <option value="audio/webm;codecs=opus">WEBM Opus</option>
+          <option value="audio/webm">WEBM</option>
+        </select>
+      </div>
+      <div class="convert-option-group">
+        <div class="convert-label">Ses Kalitesi</div>
+        <select class="format-select" id="targetQuality">
+          <option value="320000">320 kbps — En Yüksek</option>
+          <option value="192000" selected>192 kbps — Yüksek</option>
+          <option value="128000">128 kbps — Standart</option>
+          <option value="96000">96 kbps — Düşük</option>
+          <option value="64000">64 kbps — En Düşük</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="convert-actions">
+      <button class="convert-btn" id="convertBtn">⬇ Bu Parçayı Dönüştür</button>
+      <button class="convert-btn-all" id="convertAllBtn">⬇ Tüm Listeyi Dönüştür</button>
+    </div>
+
+    <div class="convert-progress-wrap" id="convertProgressWrap">
+      <div class="convert-progress-label">
+        <span id="convertProgressLabel">Hazırlanıyor...</span>
+        <span id="convertProgressPct">0%</span>
+      </div>
+      <div class="convert-progress-track">
+        <div class="convert-progress-fill" id="convertProgressFill"></div>
+      </div>
+      <div class="convert-log" id="convertLog"></div>
+    </div>
+  </div>
+
+  <!-- PLAYLIST -->
+  <div class="playlist">
+    <div class="playlist-header">
+      <div class="playlist-title">📋 Çalma Listesi</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="track-count" id="trackCount">0 parça</div>
+        <button class="eq-preset-btn" id="clearAllBtn" title="Tüm listeyi temizle" style="font-size:10px;padding:3px 8px;opacity:0.6">🗑 Temizle</button>
+      </div>
+    </div>
+    <div class="playlist-empty show" id="playlistEmpty">
+      Henüz parça eklenmedi
+    </div>
+    <div class="track-list" id="trackList"></div>
+  </div>
+</div>
+
+<div class="mini-player" id="miniPlayer">
+  <div class="mini-progress" id="miniProgress">
+    <div class="mini-progress-fill" id="miniProgressFill"></div>
+  </div>
+  <div class="mini-art" id="miniArt">🎵</div>
+  <div class="mini-info">
+    <div class="mini-title" id="miniTitle">—</div>
+    <div class="mini-artist" id="miniArtist">—</div>
+  </div>
+  <div class="mini-controls">
+    <button class="mini-btn" id="miniPrev" title="Önceki">⏮</button>
+    <button class="mini-play-btn" id="miniPlay">▶</button>
+    <button class="mini-btn" id="miniNext" title="Sonraki">⏭</button>
+  </div>
+  <button class="mini-close-btn" id="miniClose" title="Mini player'ı kapat">✕</button>
+</div>
+
+<div id="vizFullscreenOverlay">
+  <canvas id="vizFsCanvas"></canvas>
+  <button class="viz-fs-close" id="vizFsClose">✕ Kapat</button>
+  <div class="viz-fs-mode-btns">
+    <button class="viz-btn" data-fsmode="bars">▐▐</button>
+    <button class="viz-btn" data-fsmode="wave">〜</button>
+    <button class="viz-btn" data-fsmode="circle">◎</button>
+  </div>
+  <div class="viz-fs-info">
+    <div class="viz-fs-title" id="vizFsTitle">—</div>
+    <div class="viz-fs-hint">ESC ile kapat</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<audio id="audioEl"></audio>
+
+<script>
+const state = {
+  tracks: [],
+  currentIndex: -1,
+  isPlaying: false,
+  shuffle: false,
+  repeat: false, // false | 'one' | 'all'
+  volume: 0.8,
+  muted: false,
+  audioCtx: null,
+  analyser: null,
+  source: null,
+  rafId: null,
+};
+
+const audio = document.getElementById('audioEl');
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const playerCard = document.getElementById('playerCard');
+const convertPanel = document.getElementById('convertPanel');
+const trackList = document.getElementById('trackList');
+const playlistEmpty = document.getElementById('playlistEmpty');
+const trackCount = document.getElementById('trackCount');
+const playBtn = document.getElementById('playBtn');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const shuffleBtn = document.getElementById('shuffleBtn');
+const repeatBtn = document.getElementById('repeatBtn');
+const progressFill = document.getElementById('progressFill');
+const progressTrack = document.getElementById('progressTrack');
+const currentTimeEl = document.getElementById('currentTime');
+const totalTimeEl = document.getElementById('totalTime');
+const volumeSlider = document.getElementById('volumeSlider');
+const volPct = document.getElementById('volPct');
+const muteBtn = document.getElementById('muteBtn');
+const trackTitle = document.getElementById('trackTitle');
+const trackArtist = document.getElementById('trackArtist');
+const trackFormat = document.getElementById('trackFormat');
+const pulseDot = document.getElementById('pulseDot');
+const albumArt = document.getElementById('albumArt');
+const visualizerEl = document.getElementById('visualizer');
+const convertBtn = document.getElementById('convertBtn');
+const convertAllBtn = document.getElementById('convertAllBtn');
+const targetFormat = document.getElementById('targetFormat');
+const targetQuality = document.getElementById('targetQuality');
+const convertFilename = document.getElementById('convertFilename');
+const convertSize = document.getElementById('convertSize');
+const convertIcon = document.getElementById('convertIcon');
+const convertProgressWrap = document.getElementById('convertProgressWrap');
+const convertProgressFill = document.getElementById('convertProgressFill');
+const convertProgressLabel = document.getElementById('convertProgressLabel');
+const convertProgressPct = document.getElementById('convertProgressPct');
+const convertLog = document.getElementById('convertLog');
+const toastEl = document.getElementById('toast');
+
+// VISUALIZER CANVAS SETUP
+const vizCanvas = document.getElementById('visualizer');
+const vizCtx = vizCanvas.getContext('2d');
+let vizMode = 'bars';
+
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = vizCanvas.getBoundingClientRect();
+  vizCanvas.width = rect.width * dpr;
+  vizCanvas.height = rect.height * dpr;
+  vizCtx.setTransform(dpr, 0, 0, dpr, 0, 0); // reset + scale, birikim yok
+}
+resizeCanvas();
+window.addEventListener('resize', () => { resizeCanvas(); });
+
+document.querySelectorAll('.viz-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.viz-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    vizMode = btn.dataset.mode;
+  });
+});
+
+function initAudioCtx() {
+  if (state.audioCtx) return;
+  state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  state.analyser = state.audioCtx.createAnalyser();
+  state.analyser.fftSize = 2048;
+  state.source = state.audioCtx.createMediaElementSource(audio);
+  state.source.connect(state.analyser);
+  state.analyser.connect(state.audioCtx.destination);
+  // EQ filtrelerini AudioContext hazır olunca kur
+  setTimeout(() => initEqFilters(), 0);
+}
+
+function animateVisualizer() {
+  const w = vizCanvas.offsetWidth;
+  const h = vizCanvas.offsetHeight;
+  vizCtx.clearRect(0, 0, w, h);
+
+  if (!state.analyser || !state.isPlaying) {
+    // idle — subtle flat bars
+    drawIdleBars(w, h);
+    state.rafId = requestAnimationFrame(animateVisualizer);
+    return;
+  }
+
+  const bufLen = state.analyser.frequencyBinCount;
+  const freqData = new Uint8Array(bufLen);
+  const timeData = new Uint8Array(bufLen);
+  state.analyser.getByteFrequencyData(freqData);
+  state.analyser.getByteTimeDomainData(timeData);
+
+  if (vizMode === 'bars') drawBars(freqData, w, h);
+  else if (vizMode === 'wave') drawWave(timeData, w, h);
+  else if (vizMode === 'circle') drawCircle(freqData, w, h);
+
+  state.rafId = requestAnimationFrame(animateVisualizer);
+}
+
+function drawIdleBars(w, h) {
+  const count = 48;
+  const barW = (w - (count - 1) * 2) / count;
+  for (let i = 0; i < count; i++) {
+    const x = i * (barW + 2);
+    vizCtx.fillStyle = 'rgba(232,255,71,0.12)';
+    vizCtx.beginPath();
+    vizCtx.roundRect(x, h - 4, barW, 4, 2);
+    vizCtx.fill();
+  }
+}
+
+function drawBars(data, w, h) {
+  const count = 64;
+  const gap = 2;
+  const barW = (w - (count - 1) * gap) / count;
+
+  for (let i = 0; i < count; i++) {
+    // Logaritmik frekans dağılımı — tüm spektrumu dengeli kapsar
+    const logIdx = Math.floor(Math.pow(i / count, 1.6) * data.length);
+    const idx = Math.min(logIdx, data.length - 1);
+    const val = data[idx] / 255;
+    const barH = Math.max(3, val * h * 0.94);
+    const x = i * (barW + gap);
+    const y = h - barH;
+    const alpha = 0.45 + val * 0.55;
+
+    // Renk: sol=yeşil-sarı, orta=sarı, sağ=turuncu
+    const hue = 60 + (i / count) * 30; // 60°→90° (sarı→yeşil)
+    const grad = vizCtx.createLinearGradient(0, y, 0, h);
+    grad.addColorStop(0,   `hsla(${hue}, 100%, 65%, ${alpha})`);
+    grad.addColorStop(0.7, `hsla(${hue - 10}, 90%, 55%, ${alpha * 0.75})`);
+    grad.addColorStop(1,   `hsla(25, 100%, 55%, ${alpha * 0.35})`);
+    vizCtx.fillStyle = grad;
+    vizCtx.beginPath();
+    vizCtx.roundRect(x, y, barW, barH, [2, 2, 0, 0]);
+    vizCtx.fill();
+
+    // Glow efekti — yüksek değerlerde
+    if (val > 0.6) {
+      vizCtx.fillStyle = `hsla(${hue}, 100%, 75%, ${(val - 0.6) * 0.15})`;
+      vizCtx.beginPath();
+      vizCtx.roundRect(x - 1, y - 2, barW + 2, barH + 2, 3);
+      vizCtx.fill();
+    }
+
+    // Yansıma
+    vizCtx.fillStyle = `rgba(232,255,71,${val * 0.07})`;
+    vizCtx.beginPath();
+    vizCtx.roundRect(x, h + 1, barW, barH * 0.25, [0, 0, 2, 2]);
+    vizCtx.fill();
+  }
+}
+
+function drawWave(data, w, h) {
+  const mid = h / 2;
+
+  // Orta referans çizgisi
+  vizCtx.beginPath();
+  vizCtx.moveTo(0, mid); vizCtx.lineTo(w, mid);
+  vizCtx.strokeStyle = 'rgba(232,255,71,0.08)';
+  vizCtx.lineWidth = 1;
+  vizCtx.stroke();
+
+  // Ana dalga — glow
+  vizCtx.shadowBlur = 10;
+  vizCtx.shadowColor = 'rgba(232,255,71,0.5)';
+  vizCtx.lineWidth = 2.5;
+  const grad = vizCtx.createLinearGradient(0, 0, w, 0);
+  grad.addColorStop(0,   'rgba(232,255,71,0.4)');
+  grad.addColorStop(0.5, 'rgba(232,255,71,1)');
+  grad.addColorStop(1,   'rgba(255,107,53,0.4)');
+  vizCtx.strokeStyle = grad;
+  vizCtx.beginPath();
+  // Step 4 ile çiz — daha az işlem, daha hızlı
+  const step = Math.max(1, Math.floor(data.length / w * 2));
+  for (let i = 0; i < data.length; i += step) {
+    const x = (i / data.length) * w;
+    const y = mid + ((data[i] / 128) - 1) * mid * 0.88;
+    i === 0 ? vizCtx.moveTo(x, y) : vizCtx.lineTo(x, y);
+  }
+  vizCtx.stroke();
+  vizCtx.shadowBlur = 0;
+
+  // Dolgu
+  vizCtx.lineTo(w, mid); vizCtx.lineTo(0, mid); vizCtx.closePath();
+  const fillGrad = vizCtx.createLinearGradient(0, 0, 0, h);
+  fillGrad.addColorStop(0, 'rgba(232,255,71,0.08)');
+  fillGrad.addColorStop(1, 'rgba(232,255,71,0)');
+  vizCtx.fillStyle = fillGrad;
+  vizCtx.fill();
+}
+
+function drawCircle(data, w, h) {
+  const cx = w / 2, cy = h / 2;
+  const r = Math.min(w, h) * 0.28;
+  const count = 64;
+  // base circle
+  vizCtx.beginPath();
+  vizCtx.arc(cx, cy, r, 0, Math.PI * 2);
+  vizCtx.strokeStyle = 'rgba(232,255,71,0.1)';
+  vizCtx.lineWidth = 1;
+  vizCtx.stroke();
+  for (let i = 0; i < count; i++) {
+    const logIdx = Math.floor(Math.pow(i / count, 1.4) * data.length);
+    const val = data[Math.min(logIdx, data.length - 1)] / 255;
+    const angle = (i / count) * Math.PI * 2 - Math.PI / 2;
+    const outerLen = val * h * 0.40;
+    const innerLen = val * r * 0.25;
+    const alpha = 0.35 + val * 0.65;
+
+    // Dış çizgiler
+    vizCtx.strokeStyle = `hsla(${60 + val * 30}, 100%, 65%, ${alpha})`;
+    vizCtx.lineWidth = 1.5 + val * 1.5;
+    vizCtx.shadowBlur = val * 10;
+    vizCtx.shadowColor = 'rgba(232,255,71,0.5)';
+    vizCtx.beginPath();
+    vizCtx.moveTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+    vizCtx.lineTo(cx + Math.cos(angle) * (r + outerLen), cy + Math.sin(angle) * (r + outerLen));
+    vizCtx.stroke();
+
+    // İç çizgiler (yansıma efekti)
+    if (val > 0.2) {
+      vizCtx.strokeStyle = `rgba(255,107,53,${val * 0.3})`;
+      vizCtx.lineWidth = 1;
+      vizCtx.shadowBlur = 0;
+      vizCtx.beginPath();
+      vizCtx.moveTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+      vizCtx.lineTo(cx + Math.cos(angle) * (r - innerLen), cy + Math.sin(angle) * (r - innerLen));
+      vizCtx.stroke();
+    }
+  }
+  vizCtx.shadowBlur = 0;
+  // center dot
+  const avg = data.reduce((a,b) => a+b, 0) / data.length / 255;
+  vizCtx.beginPath();
+  vizCtx.arc(cx, cy, 4 + avg * 8, 0, Math.PI * 2);
+  vizCtx.fillStyle = `rgba(232,255,71,${0.3 + avg * 0.7})`;
+  vizCtx.fill();
+}
+
+// FILE HANDLING
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+});
+
+function handleFiles(files) {
+  const audioFiles = Array.from(files).filter(f => f.type.startsWith('audio/') || isAudioByExt(f.name));
+  if (!audioFiles.length) { showToast('Desteklenmeyen dosya formatı!', 'error'); return; }
+  audioFiles.forEach(f => addTrack(f));
+  showToast(`${audioFiles.length} parça eklendi ✓`, 'success');
+}
+
+function isAudioByExt(name) {
+  const exts = ['mp3','flac','m4a','wav','ogg','aac','opus','webm','wma','ape'];
+  return exts.some(e => name.toLowerCase().endsWith('.' + e));
+}
+
+function addTrack(file, skipIDB = false) {
+  const url = URL.createObjectURL(file);
+  const ext = file.name.split('.').pop().toUpperCase();
+  const name = file.name.replace(/\.[^/.]+$/, '');
+  const size = formatBytes(file.size);
+  const track = { file, url, name, ext, size, duration: '—', artist: '', coverUrl: '' };
+  state.tracks.push(track);
+  renderPlaylist();
+
+  // Süre al
+  const tmp = new Audio(url);
+  tmp.addEventListener('loadedmetadata', () => {
+    track.duration = formatTime(tmp.duration);
+    renderPlaylist();
+    tmp.src = '';
+  }, { once: true });
+
+  // Metadata oku — format otomatik algılanır (MP3/FLAC/OGG/M4A)
+  readMetadata(file).then(meta => {
+    let changed = false;
+    if (meta.title)  { track.name   = meta.title;  changed = true; }
+    if (meta.artist) { track.artist = meta.artist; changed = true; }
+    if (meta.coverBlob) {
+      track.coverUrl = URL.createObjectURL(meta.coverBlob);
+      changed = true;
+    }
+    if (changed) {
+      renderPlaylist();
+      if (state.tracks.indexOf(track) === state.currentIndex) {
+        updateNowPlaying(track);
+      }
+    }
+  }).catch(() => {/* tag yoksa sessizce geç */});
+
+  // IndexedDB'ye kaydet (restore sırasında tekrar kaydetme)
+  if (!skipIDB) {
+    idbSaveTrack(track).catch(e => console.warn('IDB save hatası:', e));
+  }
+
+  if (state.currentIndex === -1) playTrack(state.tracks.length - 1);
+}
+
+function renderPlaylist() {
+  const count = state.tracks.length;
+  trackCount.textContent = count + ' parça';
+  playlistEmpty.classList.toggle('show', count === 0);
+  trackList.innerHTML = '';
+  state.tracks.forEach((track, i) => {
+    const item = document.createElement('div');
+    item.className = 'track-item' + (i === state.currentIndex ? ' playing' : '');
+    item.innerHTML = `
+      <div class="track-num">${i + 1}</div>
+      <div class="track-thumb${track.coverUrl ? ' has-cover' : ''}">
+        ${track.coverUrl
+          ? `<img src="${track.coverUrl}" alt="" loading="lazy">`
+          : `<div class="mini-viz-bars"><div class="mini-bar"></div><div class="mini-bar"></div><div class="mini-bar"></div></div>`
+        }
+      </div>
+      <div class="track-item-info">
+        <div class="track-item-name">${escHtml(track.name)}</div>
+        <div class="track-item-meta">
+          <span>${track.ext}</span>
+          <span>${track.artist ? escHtml(track.artist) : track.size}</span>
+        </div>
+      </div>
+      <div class="track-item-dur">${track.duration}</div>
+      <button class="remove-btn" title="Kaldır">✕</button>
+    `;
+    item.addEventListener('click', e => {
+      if (e.target.classList.contains('remove-btn')) { removeTrack(i); return; }
+      playTrack(i);
+    });
+    trackList.appendChild(item);
+  });
+}
+
+function removeTrack(i) {
+  const track = state.tracks[i];
+  URL.revokeObjectURL(track.url);
+  if (track.coverUrl) URL.revokeObjectURL(track.coverUrl);
+  idbDeleteTrack(track).catch(e => console.warn('IDB delete hatası:', e));
+  state.tracks.splice(i, 1);
+  if (state.currentIndex === i) {
+    audio.pause();
+    state.isPlaying = false;
+    if (state.tracks.length > 0) playTrack(Math.min(i, state.tracks.length - 1));
+    else { state.currentIndex = -1; playerCard.classList.remove('active'); convertPanel.classList.remove('active'); }
+  } else if (state.currentIndex > i) {
+    state.currentIndex--;
+  }
+  renderPlaylist();
+}
+
+function playTrack(index) {
+  if (index < 0 || index >= state.tracks.length) return;
+  state.currentIndex = index;
+  const track = state.tracks[index];
+  audio.src = track.url;
+  audio.volume = state.muted ? 0 : state.volume;
+  audio.play().then(() => {
+    initAudioCtx();
+    if (state.audioCtx.state === 'suspended') state.audioCtx.resume();
+    state.isPlaying = true;
+    updatePlayBtn();
+    updateNowPlaying(track);
+    updateConvertPanel(track);
+    renderPlaylist();
+    if (!state.rafId) animateVisualizer();
+  }).catch(err => showToast('Oynatma hatası: ' + err.message, 'error'));
+}
+
+function updateNowPlaying(track) {
+  playerCard.classList.add('active');
+  trackTitle.textContent = track.name;
+  trackArtist.textContent = track.artist || track.file.type || 'Audio';
+  trackFormat.textContent = track.ext;
+
+  // Albüm kapağı
+  if (track.coverUrl) {
+    albumArt.innerHTML = `<img src="${track.coverUrl}" alt="Albüm kapağı">`;
+    albumArt.classList.add('spinning');
+    // Spotify arka plan blur efekti
+    const bgBlur = document.getElementById('bgBlur');
+    bgBlur.style.backgroundImage = `url(${track.coverUrl})`;
+    bgBlur.classList.add('active');
+  } else {
+    albumArt.textContent = '🎵';
+    albumArt.classList.remove('spinning');
+    document.getElementById('bgBlur').classList.remove('active');
+  }
+
+  showLyrics(state.currentIndex);
+  updateMiniPlayer(track);
+  updateMiniPlayBtn();
+
+  // ── Media Session API — kilit ekranı & bildirim paneli kontrolü ──
+  if ('mediaSession' in navigator) {
+    const artworkList = track.coverUrl
+      ? [{ src: track.coverUrl, sizes: '512x512', type: track.file.type || 'image/jpeg' }]
+      : [{ src: 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="80" fill="#0a0a0f"/><text x="256" y="340" text-anchor="middle" font-size="260" font-family="Arial Black" fill="#e8ff47">♪</text></svg>`), sizes: '512x512', type: 'image/svg+xml' }];
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title:  track.name,
+      artist: track.artist || 'SONIK Player',
+      album:  'Kütüphanem',
+      artwork: artworkList
+    });
+    navigator.mediaSession.setActionHandler('play',     () => { audio.play(); state.isPlaying = true; updatePlayBtn(); });
+    navigator.mediaSession.setActionHandler('pause',    () => { audio.pause(); state.isPlaying = false; updatePlayBtn(); });
+    navigator.mediaSession.setActionHandler('previoustrack', () => prevBtn.click());
+    navigator.mediaSession.setActionHandler('nexttrack',     () => nextBtn.click());
+    navigator.mediaSession.setActionHandler('seekto', (details) => {
+      if (details.seekTime !== undefined) audio.currentTime = details.seekTime;
+    });
+  }
+}
+
+function updateConvertPanel(track) {
+  convertPanel.classList.add('active');
+  convertFilename.textContent = track.file.name;
+  convertSize.textContent = track.size + ' · ' + track.ext;
+  convertIcon.textContent = track.ext === 'mp3' ? '🎵' : track.ext === 'flac' ? '💿' : track.ext === 'wav' ? '🌊' : '🎶';
+  convertProgressWrap.classList.remove('show');
+  convertLog.innerHTML = '';
+}
+
+function updatePlayBtn() {
+  playBtn.textContent = state.isPlaying ? '⏸' : '▶';
+  pulseDot.style.animationPlayState = state.isPlaying ? 'running' : 'paused';
+  // Albüm kapağı dönme animasyonu — çalarken döner, duranda durur
+  if (albumArt.querySelector('img')) {
+    albumArt.style.animationPlayState = state.isPlaying ? 'running' : 'paused';
+  }
+  updateMiniPlayBtn();
+  // Media Session playback state güncelle
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.playbackState = state.isPlaying ? 'playing' : 'paused';
+  }
+}
+
+// CONTROLS
+playBtn.addEventListener('click', () => {
+  if (state.currentIndex === -1) return;
+  if (navigator.vibrate) navigator.vibrate(10);
+  if (state.isPlaying) { audio.pause(); state.isPlaying = false; }
+  else { audio.play(); state.isPlaying = true; }
+  updatePlayBtn();
+});
+
+prevBtn.addEventListener('click', () => {
+  if (state.tracks.length === 0) return;
+  if (navigator.vibrate) navigator.vibrate(8);
+  if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+  let idx = state.shuffle ? randomIndex() : state.currentIndex - 1;
+  if (idx < 0) idx = state.tracks.length - 1;
+  playTrack(idx);
+});
+
+nextBtn.addEventListener('click', () => {
+  if (state.tracks.length === 0) return;
+  if (navigator.vibrate) navigator.vibrate(8);
+  let idx = state.shuffle ? randomIndex() : state.currentIndex + 1;
+  if (idx >= state.tracks.length) idx = 0;
+  playTrack(idx);
+});
+
+shuffleBtn.addEventListener('click', () => {
+  state.shuffle = !state.shuffle;
+  shuffleBtn.classList.toggle('active', state.shuffle);
+  showToast(state.shuffle ? 'Karıştırma açık' : 'Karıştırma kapalı');
+});
+
+repeatBtn.addEventListener('click', () => {
+  if (!state.repeat) { state.repeat = 'all'; repeatBtn.textContent = '↻'; repeatBtn.classList.add('active'); repeatBtn.style.color = ''; showToast('Tümünü tekrarla'); }
+  else if (state.repeat === 'all') { state.repeat = 'one'; repeatBtn.textContent = '⟳'; showToast('Birini tekrarla'); }
+  else { state.repeat = false; repeatBtn.classList.remove('active'); repeatBtn.textContent = '↻'; showToast('Tekrar kapalı'); }
+});
+
+audio.addEventListener('ended', () => {
+  if (state.repeat === 'one') { audio.currentTime = 0; audio.play(); return; }
+  let next = state.shuffle ? randomIndex() : state.currentIndex + 1;
+  if (next >= state.tracks.length) {
+    if (state.repeat === 'all') next = 0;
+    else { state.isPlaying = false; updatePlayBtn(); return; }
+  }
+  playTrack(next);
+});
+
+function randomIndex() {
+  const arr = state.tracks.map((_,i) => i).filter(i => i !== state.currentIndex);
+  return arr[Math.floor(Math.random() * arr.length)] ?? state.currentIndex;
+}
+
+// PROGRESS
+audio.addEventListener('timeupdate', () => {
+  if (!audio.duration) return;
+  const pct = (audio.currentTime / audio.duration) * 100;
+  progressFill.style.width = pct + '%';
+  currentTimeEl.textContent = formatTime(audio.currentTime);
+  totalTimeEl.textContent = formatTime(audio.duration);
+  // Media Session konum bilgisi — kilit ekranında seek bar için
+  if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: audio.duration,
+        playbackRate: audio.playbackRate,
+        position: audio.currentTime,
+      });
+    } catch(e) {}
+  }
+});
+
+progressTrack.addEventListener('click', e => {
+  const rect = progressTrack.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  audio.currentTime = pct * audio.duration;
+});
+
+// VOLUME
+volumeSlider.addEventListener('input', () => {
+  state.volume = volumeSlider.value / 100;
+  audio.volume = state.muted ? 0 : state.volume;
+  volPct.textContent = volumeSlider.value + '%';
+  updateVolIcon();
+});
+
+muteBtn.addEventListener('click', () => {
+  state.muted = !state.muted;
+  audio.volume = state.muted ? 0 : state.volume;
+  updateVolIcon();
+});
+
+function updateVolIcon() {
+  const v = state.muted ? 0 : state.volume;
+  muteBtn.textContent = v === 0 ? '🔇' : v < 0.4 ? '🔈' : v < 0.7 ? '🔉' : '🔊';
+}
+
+// FORMAT CONVERSION
+function getOutputExt(mimeType) {
+  if (mimeType.includes('wav')) return 'wav';
+  if (mimeType.includes('ogg')) return 'ogg';
+  if (mimeType.includes('opus')) return 'opus';
+  return 'webm';
+}
+
+function addLogItem(text, type = 'pending') {
+  const item = document.createElement('div');
+  item.className = 'convert-log-item ' + type;
+  const icon = type === 'ok' ? '✅' : type === 'err' ? '❌' : '⏳';
+  item.textContent = icon + ' ' + text;
+  convertLog.appendChild(item);
+  convertLog.scrollTop = convertLog.scrollHeight;
+  return item;
+}
+
+function setProgress(pct, label) {
+  convertProgressFill.style.width = pct + '%';
+  convertProgressPct.textContent = Math.round(pct) + '%';
+  if (label) convertProgressLabel.textContent = label;
+}
+
+async function convertTrack(track, mimeType, quality) {
+  // Check support
+  const mime = mimeType.split(';')[0];
+  if (!MediaRecorder.isTypeSupported(mimeType) && !MediaRecorder.isTypeSupported(mime)) {
+    throw new Error('Bu format tarayıcınızda desteklenmiyor');
+  }
+  const useMime = MediaRecorder.isTypeSupported(mimeType) ? mimeType : mime;
+
+  const response = await fetch(track.url);
+  const arrayBuffer = await response.arrayBuffer();
+
+  const offlineCtx = new OfflineAudioContext(2, 1, 44100);
+  const decoded = await offlineCtx.decodeAudioData(arrayBuffer);
+
+  const sampleRate = 44100;
+  const duration = decoded.duration;
+  const onlineCtx = new AudioContext({ sampleRate });
+  const dest = onlineCtx.createMediaStreamDestination();
+  const src = onlineCtx.createBufferSource();
+  src.buffer = decoded;
+  src.connect(dest);
+
+  const recorderOptions = { mimeType: useMime };
+  if (quality) recorderOptions.audioBitsPerSecond = parseInt(quality);
+
+  const recorder = new MediaRecorder(dest.stream, recorderOptions);
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+  return new Promise((resolve, reject) => {
+    // Progress timer
+    const startTime = Date.now();
+    const progressInterval = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const pct = Math.min(95, (elapsed / duration) * 100);
+      resolve._progress && resolve._progress(pct);
+    }, 200);
+
+    recorder.onstop = () => {
+      clearInterval(progressInterval);
+      try {
+        const blob = new Blob(chunks, { type: useMime });
+        const ext = getOutputExt(mimeType);
+        const outName = track.name + '.' + ext;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = outName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        onlineCtx.close();
+        resolve(outName);
+      } catch(e) { reject(e); }
+    };
+
+    recorder.onerror = (e) => { clearInterval(progressInterval); reject(e.error); };
+    recorder.start(100);
+    src.start();
+    setTimeout(() => {
+      try { recorder.stop(); src.stop(); } catch(e) {}
+    }, duration * 1000 + 800);
+  });
+}
+
+convertBtn.addEventListener('click', async () => {
+  if (state.currentIndex === -1) return;
+  const track = state.tracks[state.currentIndex];
+  const mimeType = targetFormat.value;
+  const quality = targetQuality.value;
+
+  convertBtn.disabled = true;
+  convertAllBtn.disabled = true;
+  convertProgressWrap.classList.add('show');
+  convertLog.innerHTML = '';
+  setProgress(0, 'Ses verisi çözümleniyor...');
+
+  const logItem = addLogItem(track.name, 'pending');
+  try {
+    const result = await convertTrack(track, mimeType, quality);
+    logItem.className = 'convert-log-item ok';
+    logItem.textContent = '✅ ' + result;
+    setProgress(100, 'Tamamlandı!');
+    showToast('Dönüştürme tamamlandı ✓', 'success');
+  } catch(err) {
+    logItem.className = 'convert-log-item err';
+    logItem.textContent = '❌ Hata: ' + err.message;
+    setProgress(0, 'Hata oluştu');
+    showToast('Dönüştürme başarısız', 'error');
+  }
+  convertBtn.disabled = false;
+  convertAllBtn.disabled = false;
+});
+
+convertAllBtn.addEventListener('click', async () => {
+  if (state.tracks.length === 0) return;
+  const mimeType = targetFormat.value;
+  const quality = targetQuality.value;
+  const total = state.tracks.length;
+
+  convertBtn.disabled = true;
+  convertAllBtn.disabled = true;
+  convertProgressWrap.classList.add('show');
+  convertLog.innerHTML = '';
+
+  let done = 0, failed = 0;
+  for (let i = 0; i < total; i++) {
+    const track = state.tracks[i];
+    setProgress((i / total) * 100, `${i + 1} / ${total} — ${track.name}`);
+    const logItem = addLogItem(track.name, 'pending');
+    // small delay between files to not overload
+    await new Promise(r => setTimeout(r, 300));
+    try {
+      const result = await convertTrack(track, mimeType, quality);
+      logItem.className = 'convert-log-item ok';
+      logItem.textContent = '✅ ' + result;
+      done++;
+    } catch(err) {
+      logItem.className = 'convert-log-item err';
+      logItem.textContent = '❌ ' + track.name + ': ' + err.message;
+      failed++;
+    }
+    setProgress(((i + 1) / total) * 100, `${i + 1} / ${total} tamamlandı`);
+  }
+
+  setProgress(100, `Bitti — ${done} başarılı${failed ? ', ' + failed + ' hatalı' : ''}`);
+  showToast(`${done}/${total} parça dönüştürüldü`, done === total ? 'success' : 'error');
+  convertBtn.disabled = false;
+  convertAllBtn.disabled = false;
+});
+
+
+
+// MINI PLAYER
+const miniPlayer = document.getElementById('miniPlayer');
+const miniPlay = document.getElementById('miniPlay');
+const miniPrev = document.getElementById('miniPrev');
+const miniNext = document.getElementById('miniNext');
+const miniClose = document.getElementById('miniClose');
+const miniTitle = document.getElementById('miniTitle');
+const miniArtist = document.getElementById('miniArtist');
+const miniArt = document.getElementById('miniArt');
+const miniProgressEl = document.getElementById('miniProgress');
+const miniProgressFill = document.getElementById('miniProgressFill');
+
+// IntersectionObserver — player card gözden kayınca mini player çıkar
+const playerObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting && state.currentIndex !== -1) {
+      miniPlayer.classList.add('show');
+      document.body.classList.add('mini-active');
+    } else {
+      miniPlayer.classList.remove('show');
+      document.body.classList.remove('mini-active');
+    }
+  });
+}, { threshold: 0.2 });
+
+playerObserver.observe(playerCard);
+
+function updateMiniPlayer(track) {
+  if (!track) return;
+  miniTitle.textContent = track.name;
+  miniArtist.textContent = track.artist
+    ? track.artist
+    : track.ext.toUpperCase() + ' · ' + track.size;
+  if (track.coverUrl) {
+    miniArt.innerHTML = `<img src="${track.coverUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
+  } else {
+    miniArt.textContent = track.ext === 'mp3' ? '🎵' : track.ext === 'flac' ? '💿' : track.ext === 'wav' ? '🌊' : '🎶';
+  }
+}
+
+function updateMiniPlayBtn() {
+  miniPlay.textContent = state.isPlaying ? '⏸' : '▶';
+}
+
+miniPlay.addEventListener('click', () => {
+  if (state.currentIndex === -1) return;
+  if (state.isPlaying) { audio.pause(); state.isPlaying = false; }
+  else { audio.play(); state.isPlaying = true; }
+  updatePlayBtn();
+  updateMiniPlayBtn();
+});
+
+miniPrev.addEventListener('click', () => prevBtn.click());
+miniNext.addEventListener('click', () => nextBtn.click());
+
+miniClose.addEventListener('click', () => {
+  miniPlayer.classList.remove('show');
+  document.body.classList.remove('mini-active');
+  playerObserver.unobserve(playerCard);
+  // Scroll to player
+  playerCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => playerObserver.observe(playerCard), 800);
+});
+
+miniProgressEl.addEventListener('click', (e) => {
+  if (!audio.duration) return;
+  const rect = miniProgressEl.getBoundingClientRect();
+  audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+});
+
+// Sync mini progress with main audio
+audio.addEventListener('timeupdate', () => {
+  if (!audio.duration) return;
+  miniProgressFill.style.width = ((audio.currentTime / audio.duration) * 100) + '%';
+});
+
+// LYRICS
+const lyricsPanel = document.getElementById('lyricsPanel');
+const lyricsDisplay = document.getElementById('lyricsDisplay');
+const lyricsEmpty = document.getElementById('lyricsEmpty');
+const lyricsTextarea = document.getElementById('lyricsTextarea');
+const lyricsEditBtn = document.getElementById('lyricsEditBtn');
+const lyricsSaveRow = document.getElementById('lyricsSaveRow');
+const lyricsSaveBtn = document.getElementById('lyricsSaveBtn');
+const lyricsCancelBtn = document.getElementById('lyricsCancelBtn');
+
+// Her parçanın sözlerini saklamak için
+
+// ── LOCAL STORAGE ──────────────────────────────────────
+const LS_KEY = 'sonik_lyrics';
+
+function lsSave() {
+  try {
+    const data = {};
+    state.tracks.forEach(t => {
+      const key = t.name + '_' + t.size;
+      if (lyricsStore[key]) data[key] = lyricsStore[key];
+    });
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  } catch(e) {}
+}
+
+function lsLoad() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+
+// ── EQUALIZER ──────────────────────────────────────────
+const EQ_BANDS = [
+  { freq: 60,   label: '60Hz',  type: 'lowshelf'  },
+  { freq: 250,  label: '250Hz', type: 'peaking'   },
+  { freq: 1000, label: '1kHz',  type: 'peaking'   },
+  { freq: 4000, label: '4kHz',  type: 'peaking'   },
+  { freq: 16000,label: '16kHz', type: 'highshelf' },
+];
+
+const EQ_PRESETS = {
+  flat:      [0,   0,   0,   0,   0  ],
+  rock:      [5,   2,  -1,   3,   4  ],
+  bass:      [8,   5,   1,  -1,  -2  ],
+  vocal:     [-2,  2,   5,   3,  -1  ],
+  classical: [4,   2,  -1,   2,   5  ],
+  metal:     [6,  -1,   2,   4,   6  ],
+};
+
+let eqFilters = [];
+let eqGainValues = [0, 0, 0, 0, 0];
+
+function buildEqBands() {
+  const container = document.getElementById('eqBands');
+  container.innerHTML = '';
+  eqGainValues.forEach((gain, i) => {
+    const band = EQ_BANDS[i];
+    const div = document.createElement('div');
+    div.className = 'eq-band';
+    div.innerHTML = `
+      <div class="eq-value" id="eqVal${i}">${gain > 0 ? '+' : ''}${gain} dB</div>
+      <input type="range" class="eq-slider" id="eqSlider${i}"
+        min="-12" max="12" step="0.5" value="${gain}">
+      <div class="eq-label">${band.label}</div>`;
+    container.appendChild(div);
+    document.getElementById('eqSlider' + i).addEventListener('input', e => {
+      const val = parseFloat(e.target.value);
+      eqGainValues[i] = val;
+      document.getElementById('eqVal' + i).textContent = (val > 0 ? '+' : '') + val + ' dB';
+      if (eqFilters[i]) eqFilters[i].gain.value = val;
+      lsSaveEq();
+      // presets'i pasifleştir
+      document.querySelectorAll('.eq-preset-btn').forEach(b => b.classList.remove('active'));
+    });
+  });
+}
+
+function initEqFilters() {
+  if (!state.audioCtx || eqFilters.length) return;
+  // Mevcut chain: source → analyser → destination
+  // Yeni chain:   source → filters[0..4] → analyser → destination
+  state.source.disconnect();
+  state.analyser.disconnect();
+
+  eqFilters = EQ_BANDS.map((band, i) => {
+    const f = state.audioCtx.createBiquadFilter();
+    f.type = band.type;
+    f.frequency.value = band.freq;
+    f.gain.value = eqGainValues[i];
+    f.Q.value = 1.0;
+    return f;
+  });
+
+  // Zincir: source → f0 → f1 → f2 → f3 → f4 → analyser → destination
+  state.source.connect(eqFilters[0]);
+  for (let i = 0; i < eqFilters.length - 1; i++) eqFilters[i].connect(eqFilters[i + 1]);
+  eqFilters[eqFilters.length - 1].connect(state.analyser);
+  state.analyser.connect(state.audioCtx.destination);
+}
+
+function applyEqPreset(name) {
+  const gains = EQ_PRESETS[name] || EQ_PRESETS.flat;
+  gains.forEach((g, i) => {
+    eqGainValues[i] = g;
+    if (eqFilters[i]) eqFilters[i].gain.value = g;
+    const slider = document.getElementById('eqSlider' + i);
+    const valEl = document.getElementById('eqVal' + i);
+    if (slider) slider.value = g;
+    if (valEl) valEl.textContent = (g > 0 ? '+' : '') + g + ' dB';
+  });
+  lsSaveEq();
+}
+
+function lsSaveEq() {
+  try { localStorage.setItem('sonik_eq', JSON.stringify(eqGainValues)); } catch(e) {}
+}
+function lsLoadEq() {
+  try {
+    const raw = localStorage.getItem('sonik_eq');
+    if (raw) { eqGainValues = JSON.parse(raw); return true; }
+  } catch(e) {}
+  return false;
+}
+
+// EQ panel aç/kapat: player card'a "🎚 EQ" butonu programatik eklenecek
+const eqPanel = document.getElementById('eqPanel');
+function toggleEqPanel() {
+  eqPanel.classList.toggle('active');
+  if (eqPanel.classList.contains('active')) {
+    if (state.audioCtx) initEqFilters();
+    buildEqBands();
+  }
+}
+
+document.querySelectorAll('.eq-preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.eq-preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyEqPreset(btn.dataset.preset);
+  });
+});
+
+// EQ butonunu volume row'a ekle
+(function addEqButton() {
+  const volRow = document.querySelector('.volume-row');
+  if (!volRow) return;
+  const btn = document.createElement('button');
+  btn.className = 'eq-preset-btn';
+  btn.textContent = '🎚 EQ';
+  btn.style.cssText = 'margin-left:8px;flex-shrink:0;padding:4px 10px;';
+  btn.id = 'eqToggleBtn';
+  btn.addEventListener('click', () => {
+    toggleEqPanel();
+    btn.classList.toggle('active', eqPanel.classList.contains('active'));
+  });
+  volRow.appendChild(btn);
+})();
+
+// ── KARAOKE / AUTO-SCROLL ──────────────────────────────
+// Format: [MM:SS] Satır metni  veya  [MM:SS.mm] Satır metni
+let karaokeMode = false;
+let karaokeLines = []; // [{time, text, el}]
+let karaokeRafId = null;
+
+function parseKaraokeLyrics(text) {
+  const lines = text.split('\n');
+  const parsed = [];
+  const tsRegex = /^\[(\d{1,2}):(\d{2})(?:\.(\d+))?\]\s*/;
+  lines.forEach(line => {
+    const m = line.match(tsRegex);
+    if (m) {
+      const secs = parseInt(m[1]) * 60 + parseFloat(m[2] + (m[3] ? '.' + m[3] : ''));
+      parsed.push({ time: secs, text: line.replace(tsRegex, ''), hasTs: true });
+    } else {
+      parsed.push({ time: null, text: line, hasTs: false });
+    }
+  });
+  return parsed;
+}
+
+function renderKaraokeDisplay(text) {
+  lyricsDisplay.innerHTML = '';
+  lyricsEmpty.style.display = 'none';
+  karaokeLines = [];
+
+  if (!text) {
+    lyricsDisplay.appendChild(lyricsEmpty);
+    lyricsEmpty.style.display = 'block';
+    return;
+  }
+
+  const lines = parseKaraokeLyrics(text);
+  lines.forEach((line, i) => {
+    const span = document.createElement('span');
+    span.className = 'lyrics-line';
+    if (line.hasTs) {
+      const tsSpan = document.createElement('span');
+      tsSpan.className = 'ts';
+      const m = Math.floor(line.time / 60);
+      const s = Math.floor(line.time % 60);
+      tsSpan.textContent = `[${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}]`;
+      span.appendChild(tsSpan);
+    }
+    span.appendChild(document.createTextNode(line.text || ' '));
+    lyricsDisplay.appendChild(span);
+    if (line.hasTs) karaokeLines.push({ time: line.time, el: span });
+  });
+}
+
+function karaokeUpdate() {
+  if (!karaokeMode || karaokeLines.length === 0) return;
+  const t = audio.currentTime;
+  let active = -1;
+  for (let i = 0; i < karaokeLines.length; i++) {
+    if (karaokeLines[i].time <= t) active = i;
+    else break;
+  }
+  karaokeLines.forEach((kl, i) => {
+    kl.el.classList.toggle('active', i === active);
+  });
+  if (active >= 0) {
+    const el = karaokeLines[active].el;
+    const parent = lyricsDisplay;
+    const elTop = el.offsetTop;
+    const elH = el.offsetHeight;
+    const parentH = parent.clientHeight;
+    const target = elTop - parentH / 2 + elH / 2;
+    parent.scrollTo({ top: target, behavior: 'smooth' });
+  }
+  karaokeRafId = requestAnimationFrame(karaokeUpdate);
+}
+
+function startKaraoke() {
+  if (karaokeRafId) cancelAnimationFrame(karaokeRafId);
+  karaokeRafId = requestAnimationFrame(karaokeUpdate);
+}
+function stopKaraoke() {
+  if (karaokeRafId) { cancelAnimationFrame(karaokeRafId); karaokeRafId = null; }
+  document.querySelectorAll('.lyrics-line').forEach(el => el.classList.remove('active'));
+}
+
+const karaokeBtn = document.getElementById('karaokeBtn');
+karaokeBtn.addEventListener('click', () => {
+  karaokeMode = !karaokeMode;
+  karaokeBtn.classList.toggle('active', karaokeMode);
+  karaokeBtn.textContent = karaokeMode ? '🎤 Karaoke ✓' : '🎤 Karaoke';
+  if (karaokeMode && state.isPlaying) startKaraoke();
+  else stopKaraoke();
+  // Mevcut sözleri yeniden render et
+  const idx = state.currentIndex;
+  if (idx >= 0) {
+    const key = state.tracks[idx].name + '_' + state.tracks[idx].size;
+    renderKaraokeDisplay(lyricsStore[key] || '');
+  }
+});
+
+// Audio olaylarına karaoke hook'u
+audio.addEventListener('play', () => { if (karaokeMode) startKaraoke(); });
+audio.addEventListener('pause', () => stopKaraoke());
+audio.addEventListener('seeked', () => { if (karaokeMode && state.isPlaying) { stopKaraoke(); startKaraoke(); }});
+
+// ── FULLSCREEN VISUALIZER ──────────────────────────────
+const vizFsOverlay = document.getElementById('vizFullscreenOverlay');
+const vizFsCanvas = document.getElementById('vizFsCanvas');
+const vizFsCtx = vizFsCanvas.getContext('2d');
+const vizFsTitle = document.getElementById('vizFsTitle');
+const vizFsClose = document.getElementById('vizFsClose');
+let vizFsMode = 'bars';
+let vizFsRafId = null;
+
+function resizeFsCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  vizFsCanvas.width = window.innerWidth * dpr;
+  vizFsCanvas.height = window.innerHeight * dpr;
+  vizFsCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function drawFsFrame() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  vizFsCtx.clearRect(0, 0, w, h);
+
+  if (!state.analyser || !state.isPlaying) {
+    vizFsRafId = requestAnimationFrame(drawFsFrame);
+    return;
+  }
+
+  const bufLen = state.analyser.frequencyBinCount;
+  const freqData = new Uint8Array(bufLen);
+  const timeData = new Uint8Array(bufLen);
+  state.analyser.getByteFrequencyData(freqData);
+  state.analyser.getByteTimeDomainData(timeData);
+
+  if (vizFsMode === 'bars') {
+    const count = 80;
+    const gap = 3;
+    const barW = (w - (count - 1) * gap) / count;
+    for (let i = 0; i < count; i++) {
+      const logIdx = Math.min(Math.floor(Math.pow(i / count, 1.6) * bufLen), bufLen - 1);
+      const val = freqData[logIdx] / 255;
+      const barH = Math.max(4, val * h * 0.85);
+      const x = i * (barW + gap);
+      const y = h - barH;
+      const grad = vizFsCtx.createLinearGradient(0, y, 0, h);
+      const hue = 60 + (i / count) * 30;
+      grad.addColorStop(0, `hsla(${hue},100%,65%,${0.5 + val * 0.5})`);
+      grad.addColorStop(1, `hsla(25,100%,55%,0.3)`);
+      vizFsCtx.fillStyle = grad;
+      if (val > 0.55) { vizFsCtx.shadowBlur = val * 20; vizFsCtx.shadowColor = `hsla(${hue},100%,65%,0.5)`; }
+      else vizFsCtx.shadowBlur = 0;
+      vizFsCtx.beginPath();
+      vizFsCtx.roundRect(x, y, barW, barH, [3, 3, 0, 0]);
+      vizFsCtx.fill();
+    }
+    vizFsCtx.shadowBlur = 0;
+  } else if (vizFsMode === 'wave') {
+    const mid = h / 2;
+    vizFsCtx.shadowBlur = 14;
+    vizFsCtx.shadowColor = 'rgba(232,255,71,0.5)';
+    vizFsCtx.lineWidth = 3;
+    const grad = vizFsCtx.createLinearGradient(0, 0, w, 0);
+    grad.addColorStop(0, 'rgba(232,255,71,0.3)');
+    grad.addColorStop(0.5, 'rgba(232,255,71,1)');
+    grad.addColorStop(1, 'rgba(255,107,53,0.3)');
+    vizFsCtx.strokeStyle = grad;
+    vizFsCtx.beginPath();
+    for (let i = 0; i < timeData.length; i++) {
+      const x = (i / timeData.length) * w;
+      const y = mid + ((timeData[i] / 128) - 1) * mid * 0.85;
+      i === 0 ? vizFsCtx.moveTo(x, y) : vizFsCtx.lineTo(x, y);
+    }
+    vizFsCtx.stroke();
+    vizFsCtx.shadowBlur = 0;
+  } else if (vizFsMode === 'circle') {
+    const cx = w / 2, cy = h / 2;
+    const r = Math.min(w, h) * 0.2;
+    const count = 128;
+    for (let i = 0; i < count; i++) {
+      const logIdx = Math.min(Math.floor(Math.pow(i / count, 1.4) * bufLen), bufLen - 1);
+      const val = freqData[logIdx] / 255;
+      const angle = (i / count) * Math.PI * 2 - Math.PI / 2;
+      const len = val * Math.min(w, h) * 0.28;
+      vizFsCtx.strokeStyle = `hsla(${60 + val * 30},100%,65%,${0.3 + val * 0.7})`;
+      vizFsCtx.lineWidth = 1.5 + val * 2;
+      vizFsCtx.shadowBlur = val * 12;
+      vizFsCtx.shadowColor = 'rgba(232,255,71,0.5)';
+      vizFsCtx.beginPath();
+      vizFsCtx.moveTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+      vizFsCtx.lineTo(cx + Math.cos(angle) * (r + len), cy + Math.sin(angle) * (r + len));
+      vizFsCtx.stroke();
+    }
+    vizFsCtx.shadowBlur = 0;
+    const avg = freqData.reduce((a, b) => a + b, 0) / freqData.length / 255;
+    vizFsCtx.beginPath();
+    vizFsCtx.arc(cx, cy, 4 + avg * 18, 0, Math.PI * 2);
+    vizFsCtx.fillStyle = `rgba(232,255,71,${0.4 + avg * 0.6})`;
+    vizFsCtx.shadowBlur = avg * 30;
+    vizFsCtx.shadowColor = 'rgba(232,255,71,0.8)';
+    vizFsCtx.fill();
+    vizFsCtx.shadowBlur = 0;
+  }
+  vizFsRafId = requestAnimationFrame(drawFsFrame);
+}
+
+document.getElementById('vizFullscreenBtn').addEventListener('click', () => {
+  vizFsOverlay.classList.add('show');
+  resizeFsCanvas();
+  vizFsMode = vizMode;
+  if (state.currentIndex >= 0) vizFsTitle.textContent = state.tracks[state.currentIndex].name;
+  if (!vizFsRafId) drawFsFrame();
+  document.body.style.overflow = 'hidden';
+});
+
+vizFsClose.addEventListener('click', closeFs);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && vizFsOverlay.classList.contains('show')) closeFs(); });
+window.addEventListener('resize', () => { if (vizFsOverlay.classList.contains('show')) resizeFsCanvas(); });
+
+function closeFs() {
+  vizFsOverlay.classList.remove('show');
+  if (vizFsRafId) { cancelAnimationFrame(vizFsRafId); vizFsRafId = null; }
+  document.body.style.overflow = '';
+}
+
+document.querySelectorAll('[data-fsmode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-fsmode]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    vizFsMode = btn.dataset.fsmode;
+  });
+});
+
+const lyricsStore = {};
+
+function showLyrics(index) {
+  if (index < 0) return;
+  const track = state.tracks[index];
+  const key = track ? track.name + '_' + track.size : index;
+  const lyrics = lyricsStore[key] || '';
+  lyricsPanel.classList.add('active');
+  if (lyrics) {
+    lyricsEmpty.style.display = 'none';
+    lyricsDisplay.childNodes.forEach(n => { if (n !== lyricsEmpty) lyricsDisplay.removeChild(n); });
+    // text node
+    const textNode = document.createElement('span');
+    textNode.style.whiteSpace = 'pre-wrap';
+    textNode.textContent = lyrics;
+    lyricsDisplay.innerHTML = '';
+    lyricsDisplay.appendChild(lyricsEmpty);
+    lyricsEmpty.style.display = 'none';
+    const span = document.createElement('span');
+    span.style.cssText = 'white-space:pre-wrap;display:block';
+    span.textContent = lyrics;
+    lyricsDisplay.appendChild(span);
+  } else {
+    lyricsDisplay.innerHTML = '';
+    lyricsDisplay.appendChild(lyricsEmpty);
+    lyricsEmpty.style.display = 'block';
+  }
+  lyricsTextarea.value = lyrics;
+  if (karaokeMode) renderKaraokeDisplay(lyrics);
+  exitEditMode();
+}
+
+function enterEditMode() {
+  lyricsTextarea.classList.add('show');
+  lyricsSaveRow.classList.add('show');
+  lyricsDisplay.style.display = 'none';
+  lyricsEditBtn.classList.add('active');
+  lyricsEditBtn.textContent = '👁 Önizle';
+  lyricsTextarea.focus();
+}
+
+function exitEditMode() {
+  lyricsTextarea.classList.remove('show');
+  lyricsSaveRow.classList.remove('show');
+  lyricsDisplay.style.display = '';
+  lyricsEditBtn.classList.remove('active');
+  lyricsEditBtn.textContent = '✏️ Düzenle';
+}
+
+lyricsEditBtn.addEventListener('click', () => {
+  if (lyricsTextarea.classList.contains('show')) {
+    exitEditMode();
+  } else {
+    enterEditMode();
+  }
+});
+
+lyricsSaveBtn.addEventListener('click', () => {
+  if (state.currentIndex < 0) return;
+  const idx = state.currentIndex;
+  const tk = state.tracks[idx];
+  const key = tk ? tk.name + '_' + tk.size : idx;
+  lyricsStore[key] = lyricsTextarea.value;
+  lsSave();
+  showLyrics(idx);
+  showToast('Şarkı sözleri kaydedildi ✓', 'success');
+});
+
+lyricsCancelBtn.addEventListener('click', () => {
+  lyricsTextarea.value = lyricsStore[state.currentIndex] || '';
+  exitEditMode();
+});
+
+// TOAST
+let toastTimer;
+// ══════════════════════════════════════════════════════
+// METADATA OKUYUCU — MP3 (ID3v2), FLAC, OGG, M4A/AAC
+// Sıfır bağımlılık, offline çalışır.
+// ══════════════════════════════════════════════════════
+
+// Ana fonksiyon — dosya türüne göre doğru parser'ı seçer
+function readMetadata(file) {
+  const ext = (file.name || '').split('.').pop().toLowerCase();
+  if (ext === 'flac')                  return readFlacTags(file);
+  if (ext === 'ogg' || ext === 'opus') return readVorbisTags(file);
+  if (ext === 'm4a' || ext === 'aac' || ext === 'mp4') return readMp4Tags(file);
+  return readID3Tags(file); // MP3, WAV, WMA, default
+}
+
+// ── FLAC — Vorbis Comment + PICTURE block ─────────────
+function readFlacTags(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onerror = () => resolve({});
+    reader.onload = e => {
+      try {
+        const u8 = new Uint8Array(e.target.result);
+        if (u8[0]!==0x66||u8[1]!==0x4C||u8[2]!==0x61||u8[3]!==0x43) return resolve({});
+        const result = {};
+        let pos = 4;
+        while (pos < u8.length - 4) {
+          const blockType = u8[pos] & 0x7F;
+          const isLast    = !!(u8[pos] & 0x80);
+          const blockSize = (u8[pos+1]<<16)|(u8[pos+2]<<8)|u8[pos+3];
+          pos += 4;
+          if (blockType === 4) {
+            _parseVorbisComment(u8, pos, result);
+          } else if (blockType === 6 && !result.coverBlob) {
+            _parseFlacPicture(u8, pos, result);
+          }
+          pos += blockSize;
+          if (isLast) break;
+        }
+        resolve(result);
+      } catch { resolve({}); }
+    };
+    reader.readAsArrayBuffer(file.slice(0, 1024 * 1024));
+  });
+}
+
+// ── OGG / OPUS — Profesyonel Sayfa Birleştirici Parser ─────────────
+async function readVorbisTags(file) {
+  const buffer = await file.slice(0, 5 * 1024 * 1024).arrayBuffer();
+  const u8 = new Uint8Array(buffer);
+  const result = {};
+  try {
+    let pos = 0;
+    let fullPacket = new Uint8Array(0);
+    let isCollecting = false;
+
+    while (pos < u8.length - 27) {
+      // OggS magic
+      if (u8[pos]!==0x4F||u8[pos+1]!==0x67||u8[pos+2]!==0x67||u8[pos+3]!==0x53) { pos++; continue; }
+
+      const segmentCount  = u8[pos + 26];
+      let pageSize = 0;
+      for (let i = 0; i < segmentCount; i++) pageSize += u8[pos + 27 + i];
+
+      const pageDataStart = pos + 27 + segmentCount;
+      const pageData = u8.slice(pageDataStart, pageDataStart + pageSize);
+
+      // OpusTags paketi başlıyor mu? (4F 70 75 73 54 61 67 73 = "OpusTags")
+      if (!isCollecting &&
+          pageData[0]===0x4F && pageData[1]===0x70 && pageData[2]===0x75 &&
+          pageData[3]===0x73 && pageData[4]===0x54) {
+        isCollecting = true;
+        fullPacket = pageData.slice();
+      } else if (isCollecting) {
+        // Devam eden sayfaları birleştir
+        const merged = new Uint8Array(fullPacket.length + pageData.length);
+        merged.set(fullPacket);
+        merged.set(pageData, fullPacket.length);
+        fullPacket = merged;
+      }
+
+      // Son segment 255'ten küçükse paket tamamdır
+      if (isCollecting && u8[pos + 27 + segmentCount - 1] < 255) break;
+
+      pos = pageDataStart + pageSize;
+    }
+
+    if (fullPacket.length > 8) _parseOpusPacket(fullPacket, result);
+
+    // Vorbis (non-Opus OGG) fallback
+    if (!result.title && !result.artist && !result.coverBlob) {
+      for (let i = 0; i < u8.length - 20; i++) {
+        if (u8[i]===0x03 && u8[i+1]===0x76 && u8[i+2]===0x6F) {
+          _parseVorbisComment(u8, i + 7, result); break;
+        }
+      }
+    }
+  } catch(e) { console.warn('Opus parse error:', e); }
+  return result;
+}
+
+function _parseOpusPacket(packet, result) {
+  const dv = new DataView(packet.buffer, packet.byteOffset);
+  let p = 8; // "OpusTags" prefix'ini atla
+  if (p + 4 > packet.length) return;
+  const vendorLen = dv.getUint32(p, true); p += 4 + vendorLen;
+  if (p + 4 > packet.length) return;
+  const count = dv.getUint32(p, true); p += 4;
+  for (let i = 0; i < count; i++) {
+    if (p + 4 > packet.length) break;
+    const len = dv.getUint32(p, true); p += 4;
+    if (p + len > packet.length) break;
+    const raw = new TextDecoder().decode(packet.slice(p, p + len));
+    p += len;
+    const eq = raw.indexOf('=');
+    if (eq < 0) continue;
+    const key = raw.slice(0, eq).toUpperCase();
+    const val = raw.slice(eq + 1);
+    if (key === 'TITLE'  && !result.title)  result.title  = val.trim();
+    if (key === 'ARTIST' && !result.artist) result.artist = val.trim();
+    if (key === 'METADATA_BLOCK_PICTURE' && !result.coverBlob) {
+      try {
+        const b64 = val.replace(/[\s\t\n\r]/g, '');
+        const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        _parseFlacPicture(bin, 0, result);
+      } catch(e) { console.warn('Cover decode failed:', e); }
+    }
+  }
+}
+
+function _parseVorbisComment(u8, pos, result) {
+  const dv = new DataView(u8.buffer, u8.byteOffset);
+  if (pos + 4 > u8.length) return;
+  const vendorLen = dv.getUint32(pos, true); pos += 4 + vendorLen;
+  if (pos + 4 > u8.length) return;
+  const count = dv.getUint32(pos, true); pos += 4;
+  for (let i = 0; i < count && pos + 4 < u8.length; i++) {
+    const len = dv.getUint32(pos, true); pos += 4;
+    if (pos + len > u8.length) break;
+    const raw = new TextDecoder('utf-8').decode(u8.slice(pos, pos + len));
+    pos += len;
+    const eq = raw.indexOf('=');
+    if (eq < 0) continue;
+    const key = raw.slice(0, eq).toUpperCase();
+    const val = raw.slice(eq + 1);
+    if (key === 'TITLE'  && !result.title)  result.title  = val.trim();
+    if (key === 'ARTIST' && !result.artist) result.artist = val.trim();
+    if ((key === 'METADATA_BLOCK_PICTURE' || key === 'COVERART') && !result.coverBlob) {
+      try {
+        const cleanVal = val.trim().replace(/[\s\t\n\r]/g, '');
+        const binaryStr = atob(cleanVal);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let j = 0; j < binaryStr.length; j++) bytes[j] = binaryStr.charCodeAt(j);
+        if (key === 'METADATA_BLOCK_PICTURE') {
+          _parseFlacPicture(bytes, 0, result);
+        } else {
+          const mime = (bytes[0]===0xFF && bytes[1]===0xD8) ? 'image/jpeg' : 'image/png';
+          result.coverBlob = new Blob([bytes], { type: mime });
+        }
+      } catch(e) { console.warn('Vorbis cover parse failed:', e); }
+    }
+  }
+}
+function _parseFlacPicture(u8, pos, result) {
+  const dv = new DataView(u8.buffer, u8.byteOffset);
+  pos += 4; // picture type
+  const mimeLen = dv.getUint32(pos); pos += 4 + mimeLen;
+  const descLen = dv.getUint32(pos); pos += 4 + descLen;
+  pos += 16; // width, height, depth, colors
+  const dataLen = dv.getUint32(pos); pos += 4;
+  const raw = u8.slice(pos, pos + dataLen);
+  const imgStart = _findImageMagic(raw);
+  if (imgStart !== -1) {
+    const img  = raw.slice(imgStart);
+    const mime = (img[0]===0xFF && img[1]===0xD8) ? 'image/jpeg' : 'image/png';
+    result.coverBlob = new Blob([img], { type: mime });
+  }
+}
+
+// ── ID3v2 parser (MP3 + fallback) — Magic Byte Scanner ──
+function readID3Tags(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onerror = () => resolve({});
+    reader.onload  = e => {
+      try {
+        const buf = e.target.result;
+        const u8  = new Uint8Array(buf);
+        const dv  = new DataView(buf);
+
+        if (u8[0] !== 0x49 || u8[1] !== 0x44 || u8[2] !== 0x33) return resolve({});
+
+        const ver   = u8[3];
+        const flags = u8[5];
+        const tagEnd = 10 +
+          ((u8[6]&0x7F)<<21) | ((u8[7]&0x7F)<<14) |
+          ((u8[8]&0x7F)<<7)  |  (u8[9]&0x7F);
+
+        let pos = 10;
+        if ((flags & 0x40) && ver >= 3) {
+          const exSize = ver === 4
+            ? ((u8[pos]&0x7F)<<21)|((u8[pos+1]&0x7F)<<14)|((u8[pos+2]&0x7F)<<7)|(u8[pos+3]&0x7F)
+            : dv.getUint32(pos);
+          pos += exSize;
+        }
+
+        function readText(start, len, enc) {
+          const bytes = u8.slice(start, start + len);
+          try {
+            if (enc === 0) return new TextDecoder('iso-8859-1').decode(bytes).replace(/\0.*$/, '');
+            if (enc === 1 || enc === 2) {
+              const bom = bytes[0] === 0xFF && bytes[1] === 0xFE;
+              const raw = (bytes[0]===0xFF||bytes[0]===0xFE) ? bytes.slice(2) : bytes;
+              return new TextDecoder(bom||enc===1 ? 'utf-16le' : 'utf-16be').decode(raw).replace(/\0.*$/, '');
+            }
+            return new TextDecoder('utf-8').decode(bytes).replace(/\0.*$/, '');
+          } catch { return ''; }
+        }
+
+        const result  = {};
+        const limit   = Math.min(tagEnd, buf.byteLength);
+        const hdrLen  = ver === 2 ? 6 : 10;
+
+        while (pos + hdrLen < limit) {
+          const fid = ver === 2
+            ? String.fromCharCode(u8[pos], u8[pos+1], u8[pos+2])
+            : String.fromCharCode(u8[pos], u8[pos+1], u8[pos+2], u8[pos+3]);
+
+          if (u8[pos] === 0) break;
+
+          let fsize;
+          if (ver === 2)      fsize = (u8[pos+3]<<16)|(u8[pos+4]<<8)|u8[pos+5];
+          else if (ver === 4) fsize = ((u8[pos+4]&0x7F)<<21)|((u8[pos+5]&0x7F)<<14)|((u8[pos+6]&0x7F)<<7)|(u8[pos+7]&0x7F);
+          else                fsize = dv.getUint32(pos + 4);
+
+          const dstart = pos + hdrLen;
+          pos = dstart + fsize;
+
+          if (fsize <= 0 || pos > limit + 1024) break;
+          if (dstart + fsize > buf.byteLength) continue;
+
+          const enc = u8[dstart];
+
+          if ((fid === 'TIT2' || fid === 'TT2') && !result.title) {
+            const v = readText(dstart + 1, fsize - 1, enc).trim();
+            if (v) result.title = v;
+          }
+          else if ((fid === 'TPE1' || fid === 'TP1') && !result.artist) {
+            const v = readText(dstart + 1, fsize - 1, enc).trim();
+            if (v) result.artist = v;
+          }
+          else if ((fid === 'APIC' || fid === 'PIC') && !result.coverBlob) {
+            const frameData = u8.slice(dstart, dstart + fsize);
+            const imgStart  = _findImageMagic(frameData);
+            if (imgStart !== -1) {
+              const img  = frameData.slice(imgStart);
+              const mime = (img[0]===0xFF && img[1]===0xD8) ? 'image/jpeg' : 'image/png';
+              result.coverBlob = new Blob([img], { type: mime });
+            }
+          }
+        }
+        resolve(result);
+      } catch { resolve({}); }
+    };
+    reader.readAsArrayBuffer(file.slice(0, 2 * 1024 * 1024));
+  });
+}
+
+// Yardımcı: JPEG (FF D8 FF) veya PNG (89 50 4E 47) magic byte'larını ara
+function _findImageMagic(u8) {
+  for (let i = 0; i < u8.length - 3; i++) {
+    if (u8[i]===0xFF && u8[i+1]===0xD8 && u8[i+2]===0xFF) return i; // JPEG
+    if (u8[i]===0x89 && u8[i+1]===0x50 && u8[i+2]===0x4E && u8[i+3]===0x47) return i; // PNG
+  }
+  return -1;
+}
+
+
+function showToast(msg, type = '') {
+  toastEl.textContent = msg;
+  toastEl.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2800);
+}
+
+// UTILS
+function formatTime(s) {
+  if (isNaN(s)) return '—';
+  const m = Math.floor(s / 60), ss = Math.floor(s % 60);
+  return m + ':' + String(ss).padStart(2, '0');
+}
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(1) + ' MB';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// KEYBOARD SHORTCUTS
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.code === 'Space') { e.preventDefault(); playBtn.click(); }
+  if (e.code === 'ArrowRight') audio.currentTime = Math.min(audio.duration, audio.currentTime + 10);
+  if (e.code === 'ArrowLeft') audio.currentTime = Math.max(0, audio.currentTime - 10);
+  if (e.code === 'ArrowUp') { volumeSlider.value = Math.min(100, +volumeSlider.value + 10); volumeSlider.dispatchEvent(new Event('input')); }
+  if (e.code === 'ArrowDown') { volumeSlider.value = Math.max(0, +volumeSlider.value - 10); volumeSlider.dispatchEvent(new Event('input')); }
+});
+
+
+// ══════════════════════════════════════════════════════
+// INDEXEDDB — Dosyaları kalıcı sakla
+// ══════════════════════════════════════════════════════
+const IDB_NAME = 'sonikDB';
+const IDB_VER  = 1;
+const IDB_STORE = 'tracks';
+let idb = null;
+
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    if (idb) { resolve(idb); return; }
+    const req = indexedDB.open(IDB_NAME, IDB_VER);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess  = e => { idb = e.target.result; resolve(idb); };
+    req.onerror    = e => reject(e.target.error);
+  });
+}
+
+async function idbSaveTrack(track) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    // File → ArrayBuffer olarak sakla
+    const reader = new FileReader();
+    reader.onload = e => {
+      const record = {
+        id:       track.name + '_' + track.file.size,
+        name:     track.name,
+        ext:      track.ext,
+        size:     track.size,
+        fileSize: track.file.size,
+        type:     track.file.type || 'audio/' + track.ext.toLowerCase(),
+        fileName: track.file.name,
+        buffer:   e.target.result,
+        addedAt:  Date.now(),
+      };
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(record);
+      tx.oncomplete = () => resolve();
+      tx.onerror    = ev => reject(ev.target.error);
+    };
+    reader.onerror = () => reject(new Error('FileReader hatası'));
+    reader.readAsArrayBuffer(track.file);
+  });
+}
+
+async function idbDeleteTrack(track) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const key = track.name + '_' + track.file.size;
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror    = ev => reject(ev.target.error);
+  });
+}
+
+async function idbClearAll() {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror    = ev => reject(ev.target.error);
+  });
+}
+
+async function idbLoadAll() {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).getAll();
+    req.onsuccess = e => resolve(e.target.result || []);
+    req.onerror   = ev => reject(ev.target.error);
+  });
+}
+
+// Kayıtlardan File + track nesnesi oluştur
+function recordToTrack(record) {
+  const blob = new Blob([record.buffer], { type: record.type });
+  const file = new File([blob], record.fileName, { type: record.type });
+  const url  = URL.createObjectURL(blob);
+  return { file, url, name: record.name, ext: record.ext, size: record.size, duration: '—' };
+}
+
+// Sayfa açılışında kayıtlı parçaları yükle
+async function idbRestoreTracks() {
+  try {
+    const records = await idbLoadAll();
+    if (!records.length) return;
+    // Eskiden yeniye sırala
+    records.sort((a, b) => a.addedAt - b.addedAt);
+    showToast(`💾 ${records.length} parça geri yükleniyor...`);
+    for (const rec of records) {
+      const track = recordToTrack(rec);
+      state.tracks.push(track);
+
+      // Süre al
+      const tmp = new Audio(track.url);
+      tmp.addEventListener('loadedmetadata', () => {
+        track.duration = formatTime(tmp.duration);
+        renderPlaylist();
+        tmp.src = '';
+      }, { once: true });
+
+      // Metadata yeniden oku — yenileme sonrası artist/cover kaybolmasın
+      readMetadata(track.file).then(meta => {
+        let changed = false;
+        if (meta.title)  { track.name   = meta.title;  changed = true; }
+        if (meta.artist) { track.artist = meta.artist; changed = true; }
+        if (meta.coverBlob) {
+          track.coverUrl = URL.createObjectURL(meta.coverBlob);
+          changed = true;
+        }
+        if (changed) {
+          renderPlaylist();
+          if (state.tracks.indexOf(track) === state.currentIndex) updateNowPlaying(track);
+        }
+      }).catch(() => {});
+    }
+    renderPlaylist();
+    showToast(`✅ ${records.length} parça geri yüklendi`, 'success');
+  } catch(e) {
+    console.warn('IndexedDB restore hatası:', e);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// PWA — Service Worker & Install Prompt
+// ══════════════════════════════════════════════════════
+
+// Service Worker — inline olarak blob URL ile kaydet
+const SW_CODE = `
+const CACHE = 'sonik-v1';
+self.addEventListener('install', e => {
+  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll([self.location.pathname])));
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(clients.claim());
+});
+self.addEventListener('fetch', e => {
+  // Sadece GET isteklerini önbelle
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      if (cached) return cached;
+      return fetch(e.request).then(res => {
+        if (res && res.status === 200 && res.type === 'basic') {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => cached);
+    })
+  );
+});
+`;
+
+if ('serviceWorker' in navigator) {
+  const blob = new Blob([SW_CODE], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl, { scope: './' })
+    .then(() => console.log('SONIK SW kayıtlı ✓'))
+    .catch(e => console.warn('SW kayıt hatası:', e));
+}
+
+// PWA Install prompt — "Ana Ekrana Ekle" butonu
+let deferredPrompt = null;
+const installBtn = document.createElement('button');
+installBtn.id = 'installBtn';
+installBtn.innerHTML = '📲 Ana Ekrana Ekle';
+installBtn.style.cssText = `
+  display: none;
+  position: fixed;
+  bottom: calc(80px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 100px;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(232,255,71,0.4);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  animation: float 2s ease-in-out infinite;
+`;
+document.body.appendChild(installBtn);
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'block';
+  showToast('📲 Uygulamayı ana ekrana ekleyebilirsin!', 'success');
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
+  installBtn.style.display = 'none';
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') showToast('✅ SONIK ana ekrana eklendi!', 'success');
+  deferredPrompt = null;
+});
+
+window.addEventListener('appinstalled', () => {
+  installBtn.style.display = 'none';
+  showToast('🎉 SONIK yüklendi!', 'success');
+});
+
+
+
+// ── UYGULAMA BAŞLANGICI ────────────────────────────────
+(function init() {
+  // EQ yükle
+  if (lsLoadEq()) buildEqBands();
+
+  // Sözleri yükle
+  const savedLyrics = lsLoad();
+  Object.assign(lyricsStore, savedLyrics);
+
+  // IndexedDB'den önceki parçaları geri yükle
+  idbRestoreTracks();
+})();
+
+// "Tümünü Temizle" butonu
+document.getElementById('clearAllBtn').addEventListener('click', async () => {
+  if (!state.tracks.length) return;
+  if (!confirm('Çalma listesi ve kaydedilen tüm dosyalar silinecek. Emin misin?')) return;
+  // Tüm URL'leri serbest bırak
+  state.tracks.forEach(t => { URL.revokeObjectURL(t.url); if (t.coverUrl) URL.revokeObjectURL(t.coverUrl); });
+  state.tracks = [];
+  state.currentIndex = -1;
+  audio.pause();
+  audio.removeAttribute('src');
+  state.isPlaying = false;
+  updatePlayBtn();
+  playerCard.classList.remove('active');
+  convertPanel.classList.remove('active');
+  lyricsPanel.classList.remove('active');
+  eqPanel.classList.remove('active');
+  renderPlaylist();
+  await idbClearAll();
+  showToast('🗑 Liste temizlendi', 'success');
+});
+</script>
+</body>
+</html>
